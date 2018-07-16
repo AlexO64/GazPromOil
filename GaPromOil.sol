@@ -48,6 +48,15 @@ contract OilHankRegistar {
         uint resetMTBF,
         uint lastActionMTBF
     );
+    event OilHankReset( string indexed oilHankRegName, 
+        uint index,
+        uint registrationTime,
+        uint weigthVPS,
+        uint candleLength,
+        uint registrationMTBF, 
+        uint resetMTBF,
+        uint lastActionMTBF
+    );
     event OilHankExists( string indexed oilHankRegName );
     event OilHankActionRegistered( string indexed oilHankRegName, 
         uint regTime,
@@ -67,7 +76,7 @@ contract OilHankRegistar {
         owner = msg.sender;
         
         // we need this registration for later when will be adding Actions
-        // Actions cannot be added to ) index
+        // Actions cannot be added to 0 index if youy additing through RegName
 
         darOilHank.push( OilHank( 
             {
@@ -143,6 +152,51 @@ contract OilHankRegistar {
         return darOilHank.length - 1;
     }
    
+    function resetOilHank( uint weigthVPS, uint candleLength, uint registrationMTBF, uint resetMTBF, string oilHankRegName )
+    public returns ( uint ){
+        uint idx = indexOilHank[ sha256( bytes( oilHankRegName ) ) ];
+        if( idx > 0 ){ //if already exists reset Hank info
+            darOilHank[ idx ].registrationTime = now;
+            darOilHank[ idx ].weigthVPS = weigthVPS;
+            darOilHank[ idx ].candleLength = candleLength;
+            darOilHank[ idx ].registrationMTBF = registrationMTBF; 
+            darOilHank[ idx ].resetMTBF = resetMTBF;
+            darOilHank[ idx ].lastActionMTBF = registrationMTBF;
+            darOilHank[ idx ].oilHankRegName = oilHankRegName;
+            emit OilHankReset( oilHankRegName,
+                idx,
+                now,
+                weigthVPS,
+                candleLength,
+                registrationMTBF, 
+                resetMTBF,
+                registrationMTBF
+            );
+        }else{ // save reg info
+            OilHank memory newOilHank;
+            newOilHank.registrationTime = now;
+            newOilHank.weigthVPS = weigthVPS;
+            newOilHank.candleLength = candleLength;
+            newOilHank.registrationMTBF = registrationMTBF; 
+            newOilHank.resetMTBF = resetMTBF;
+            newOilHank.lastActionMTBF = registrationMTBF;
+            newOilHank.oilHankRegName = oilHankRegName;
+            darOilHank.push( newOilHank );
+            idx = darOilHank.length - 1;
+            indexOilHank[ sha256( bytes( oilHankRegName ) ) ] = idx;
+            emit OilHankRegistered( oilHankRegName,
+                idx,
+                now,
+                weigthVPS,
+                candleLength,
+                registrationMTBF, 
+                resetMTBF,
+                registrationMTBF
+            );
+        }
+        return idx;
+    }
+   
     function getOilHankInfo( string oilHankRegName ) public view returns( 
         uint registrationTime,
         uint weigthVPS, 
@@ -202,7 +256,7 @@ contract OilHankRegistar {
         //IF RC[-9]="Подъем",                   ABS(RC[-1]-RC[-2])*0.5
         //IF RC[-9]="Спуск",                    ABS(RC[-1]-RC[-2])*0.5
         if( operation == ActionChoices.Lift || operation == ActionChoices.Descent ){
-            return absDifference( stopStep, startStep ) / 2;
+            return ( absDifference( stopStep, startStep ) + 1 ) >> 1;
         }
         
         //IF RC[-9]="СПО",                      ABS(RC[-1]-RC[-2])
@@ -218,13 +272,13 @@ contract OilHankRegistar {
         
         //IF RC[-9]="Спуск обсадной колонны",   RC[-1]*0.5
         if( operation == ActionChoices.DescentColumn ){
-            return stopStep / 2;
+            return ( stopStep + 1 ) >> 1;
         }
         
         //IF RC[-9]="Отбор керна",              ABS(RC[-1]-RC[-2])*2
         //IF RC[-9]="Проработка",               ABS(RC[-1]-RC[-2])*2
         //IF RC[-9]="Шаблонировка",             ABS(RC[-1]-RC[-2])*2
-        return absDifference( stopStep, startStep ) * 2;
+        return absDifference( stopStep, startStep ) << 1;
     }
     
     function addActionByIndex( uint startLH, uint endLH, uint startWeigth, uint endWeigth, uint action, uint idx ) public returns( uint ){
