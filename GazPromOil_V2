@@ -219,7 +219,7 @@ contract OilHankRegistar {
             return false;
         }
         //cannot reset OilHank in Active Status
-        if( darOilHank[ idx ].status != HankOilStatus.Active ){
+        if( darOilHank[ idx ].status == HankOilStatus.Active ){
             return false;
         }
         darOilHank[ idx ].status = HankOilStatus( status );
