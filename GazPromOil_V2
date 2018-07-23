@@ -136,6 +136,7 @@ contract OilHankRegistar {
     public returns ( uint ){
         if( indexOilHank[ sha256( bytes( oilHankRegName ) ) ] > 0 ){ //if already exists do nothing
             emit OilHankExists( oilHankRegName );
+            return indexOilHank[ sha256( bytes( oilHankRegName ) ) ];
         }else{ // save reg info
             OilHank memory newOilHank;
             newOilHank.status = defaultStatus;
@@ -165,6 +166,9 @@ contract OilHankRegistar {
         require( uint(HankOilStatus.Active) >= status );
         uint idx = indexOilHank[ sha256( bytes( oilHankRegName ) ) ];
         if( idx > 0 ){ //if already exists reset Hank info
+            //cannot reset OilHank in Active Status
+            require( darOilHank[ idx ].status != HankOilStatus.Active );
+            //reset fields of oilHank
             darOilHank[ idx ].status = HankOilStatus( status );
             darOilHank[ idx ].weigthVPS = weigthVPS;
             darOilHank[ idx ].candleLength = candleLength;
@@ -212,6 +216,10 @@ contract OilHankRegistar {
         }
         uint idx = indexOilHank[ sha256( bytes( oilHankRegName ) )];
         if( idx < 1 ){
+            return false;
+        }
+        //cannot reset OilHank in Active Status
+        if( darOilHank[ idx ].status != HankOilStatus.Active ){
             return false;
         }
         darOilHank[ idx ].status = HankOilStatus( status );
